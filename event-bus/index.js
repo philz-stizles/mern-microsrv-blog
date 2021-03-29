@@ -1,12 +1,9 @@
 require('dotenv').config()
 const express = require('express');
-const axios = require('axios');
 const cors = require('cors');
-const { randomBytes } = require('crypto');
+const axios = require('axios');
 
 const app = express();
-
-const commentsByPost = {};
 
 // CORS
 app.use(cors({
@@ -21,34 +18,16 @@ app.use(express.json({ limit: '10kb' })) // This would limit the body size to 10
 app.use(express.urlencoded({ extended: true, limit: '10kb' })) // This would limit the body size to 10kb
 
 // API - MOUNTING
-app.post('/api/v1/posts/:postId/comments', async (req, res) => {
-    console.log(req.params.postId)
-    const comments = commentsByPost[req.params.postId] || []
-
-    const id = randomBytes(4).toString('hex')
-    const { content } = req.body
-    const newComment = { id, postId: req.params.postId, content, status: 'pending' }
-
-    console.log(newComment)
-
-    commentsByPost[req.params.postId].unshift(newComment)
-    console.log(commentsByPost)
-
-    await axios.post('http://localhost:4005/api/v1/events', { type: 'CommentCreated', data: newComment })
-
-    res.status(201).send({ status: true, data: comments, message: 'Created successfully' })
-})
-
-app.get('/api/v1/posts/:postId/comments', (req, res) => {
-    const comments = commentsByPost[req.params.postId] || []
-    res.send({ status: true, data: comments })
-})
-
-// API EVENT
 app.post('/api/v1/events', (req, res) => {
-    const { type, data } = req.body
-    console.log(req.body)
-    res.send({})
+    const event = req.body
+    console.log(event)
+
+    axios.post('http://localhost:4001/api/v1/events', event)
+    axios.post('http://localhost:4002/api/v1/events', event)
+    axios.post('http://localhost:4003/api/v1/events', event)
+    axios.post('http://localhost:4004/api/v1/events', event)
+
+    res.send({ status: true, message: 'Event emitted' })
 })
 
 

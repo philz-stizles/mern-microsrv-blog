@@ -1,18 +1,15 @@
 require('dotenv').config()
 const express = require('express');
-const axios = require('axios');
 const cors = require('cors');
-const { randomBytes } = require('crypto');
 
 const app = express();
 
-const commentsByPost = {};
+const posts = {};
 
 // CORS
 app.use(cors({
     // origin: 'https://someurl.com'
 })) // cors() is a middleware which means that you can implement on specific routes as middlware
-
 app.options('*', cors())
 // app.options('/api/v1/tours/:id', cors()) // You can also use for specific routes
 
@@ -21,33 +18,38 @@ app.use(express.json({ limit: '10kb' })) // This would limit the body size to 10
 app.use(express.urlencoded({ extended: true, limit: '10kb' })) // This would limit the body size to 10kb
 
 // API - MOUNTING
-app.post('/api/v1/posts/:postId/comments', async (req, res) => {
-    console.log(req.params.postId)
-    const comments = commentsByPost[req.params.postId] || []
 
-    const id = randomBytes(4).toString('hex')
-    const { content } = req.body
-    const newComment = { id, postId: req.params.postId, content, status: 'pending' }
-
-    console.log(newComment)
-
-    commentsByPost[req.params.postId].unshift(newComment)
-    console.log(commentsByPost)
-
-    await axios.post('http://localhost:4005/api/v1/events', { type: 'CommentCreated', data: newComment })
-
-    res.status(201).send({ status: true, data: comments, message: 'Created successfully' })
-})
-
-app.get('/api/v1/posts/:postId/comments', (req, res) => {
-    const comments = commentsByPost[req.params.postId] || []
-    res.send({ status: true, data: comments })
+app.get('/api/v1/posts', (req, res) => {
+    res.send({ status: true, data: posts })
 })
 
 // API EVENT
 app.post('/api/v1/events', (req, res) => {
     const { type, data } = req.body
     console.log(req.body)
+
+    switch (type) {
+        case 'PostCreated':
+            const newPost = { id: data.id, title: data.title, content: data.content, comments: [] }
+            posts[data.id] = newPost
+
+            break;
+
+        case 'CommentCreated':
+            const { id, postId, content, status } = data
+            const post = posts[postId]
+            const newComment = { id, content, status }
+
+            console.log(newComment)
+
+            post.comments.unshift(newComment)
+
+            break;
+
+        default:
+            break;
+    }
+
     res.send({})
 })
 
