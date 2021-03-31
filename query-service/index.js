@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 
 const app = express();
 
@@ -24,10 +25,7 @@ app.get('/api/v1/posts', (req, res) => {
 })
 
 // API EVENT
-app.post('/api/v1/events', (req, res) => {
-    const { type, data } = req.body
-    console.log(req.body)
-
+const handleEvent = (type, data) => {
     switch (type) {
         case 'PostCreated':
             const newPost = { id: data.id, title: data.title, content: data.content, comments: [] }
@@ -36,19 +34,34 @@ app.post('/api/v1/events', (req, res) => {
             break;
 
         case 'CommentCreated':
-            const { id, postId, content, status } = data
-            const post = posts[postId]
-            const newComment = { id, content, status }
+            const targetPost = posts[data.postId]
+            const newComment = { id: data.id, content: data.content, status: data.status }
 
             console.log(newComment)
 
-            post.comments.unshift(newComment)
+            targetPost.comments.unshift(newComment)
+
+            break;
+
+        case 'CommentUpdated':
+            const { id, postId, content, status } = data;
+            const post = posts[postId];
+            const comment = post.comments.find(comment => comment.id === id);
+            comment.status = status;
+            comment.content = content;
 
             break;
 
         default:
             break;
     }
+}
+
+app.post('/api/v1/events', (req, res) => {
+    console.log(req.body)
+    const { type, data } = req.body
+
+    handleEvent(type, data)
 
     res.send({})
 })
@@ -69,9 +82,15 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT;
 
-app.listen(PORT, err => {
+app.listen(PORT, async err => {
     if(err) {
         console.log(`Server running on ${PORT}`)
+    }
+
+    const response = await axios.get('http://localhost:4005/api/v1/events')
+    for(let event of response.data) {
+        console.log(`Processing event: ${event.type}`)
+        handleEvent(event.type, event.data)
     }
 
     console.log(`Server running on ${PORT} in ${process.env.NODE_ENV} environment`)

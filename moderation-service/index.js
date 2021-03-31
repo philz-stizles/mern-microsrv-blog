@@ -10,8 +10,8 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' })) // This would lim
 
 // API EVENT
 app.post('/api/v1/events', (req, res) => {
-    const { type, data } = req.body
     console.log(req.body)
+    const { type, data } = req.body
 
     switch (type) {
         case 'CommentCreated':

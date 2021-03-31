@@ -22,7 +22,6 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' })) // This would lim
 
 // API - MOUNTING
 app.post('/api/v1/posts/:postId/comments', async (req, res) => {
-    console.log(req.params.postId)
     const comments = commentsByPost[req.params.postId] || []
 
     const id = randomBytes(4).toString('hex')
@@ -31,7 +30,8 @@ app.post('/api/v1/posts/:postId/comments', async (req, res) => {
 
     console.log(newComment)
 
-    commentsByPost[req.params.postId].unshift(newComment)
+    comments.unshift(newComment)
+    commentsByPost[req.params.postId] = comments
     console.log(commentsByPost)
 
     await axios.post('http://localhost:4005/api/v1/events', { type: 'CommentCreated', data: newComment })
@@ -46,8 +46,27 @@ app.get('/api/v1/posts/:postId/comments', (req, res) => {
 
 // API EVENT
 app.post('/api/v1/events', (req, res) => {
-    const { type, data } = req.body
-    console.log(req.body)
+    console.log(commentsByPost);
+    console.log(req.body);
+    const { type, data } = req.body;
+    const { id, postId, status } = data;
+
+    switch (type) {
+        case 'CommentModerated':
+            const comments = commentsByPost[postId];
+            const comment = comments.find(comment => comment.id === id);
+            comment.status = status;
+
+            axios.post('http://localhost:4005/api/v1/events', { 
+                type: 'CommentUpdated', 
+                data: { ...comment } 
+            })
+            break;
+    
+        default:
+            break;
+    }
+    
     res.send({})
 })
 

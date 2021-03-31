@@ -17,17 +17,27 @@ app.options('*', cors())
 app.use(express.json({ limit: '10kb' })) // This would limit the body size to 10kb
 app.use(express.urlencoded({ extended: true, limit: '10kb' })) // This would limit the body size to 10kb
 
+// EVENT BUS DATASTORE
+const events = []
+
 // API - MOUNTING
 app.post('/api/v1/events', (req, res) => {
     const event = req.body
+    events.push(event)
     console.log(event)
 
     axios.post('http://localhost:4001/api/v1/events', event)
-    axios.post('http://localhost:4002/api/v1/events', event)
+    axios.post('http://localhost:4002/api/v1/events', event) // Send to Comment Service
     axios.post('http://localhost:4003/api/v1/events', event)
-    axios.post('http://localhost:4004/api/v1/events', event)
+    axios.post('http://localhost:4004/api/v1/events', event) // Send to Moderation Service
 
     res.send({ status: true, message: 'Event emitted' })
+})
+
+// API - MOUNTING
+app.get('/api/v1/events', (req, res) => {
+    console.log(events)
+    res.send(events)
 })
 
 
